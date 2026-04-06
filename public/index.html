@@ -3,37 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cats Hockey FIX</title>
+    <title>Cats Hockey - Ultra</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
-        body { background: #0d1b2a; overflow: hidden; touch-action: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Montserrat', sans-serif; }
+        body { background: #0d1b2a; color: white; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #e0f7fa; }
         
-        /* Холст на заднем плане */
-        canvas { position: absolute; top: 0; left: 0; z-index: 1; display: block; }
-
-        /* Интерфейс НАД холстом */
         .screen { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            z-index: 100; display: none; flex-direction: column; 
+            z-index: 10; display: none; flex-direction: column; 
             justify-content: center; align-items: center; 
-            background: rgba(13, 27, 42, 0.9);
+            background: rgba(13, 27, 42, 0.8); backdrop-filter: blur(10px); 
         }
         .screen.active { display: flex; }
+        .panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 25px; text-align: center; width: 90%; max-width: 400px; }
 
-        .panel { background: #1b263b; padding: 30px; border-radius: 20px; border: 2px solid #00b4d8; text-align: center; width: 320px; }
-        h1 { color: #fff; margin-bottom: 20px; font-size: 24px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; text-align: center; }
-        button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; border: none; background: #00b4d8; color: #fff; font-weight: bold; cursor: pointer; }
+        button { padding: 15px; margin: 8px 0; border-radius: 12px; border: none; background: #00b4d8; color: white; font-weight: bold; width: 100%; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #00e5ff; background: rgba(0,0,0,0.5); color: white; text-align: center; }
         
-        #gameUI { pointer-events: none; background: transparent; }
-        #score { position: absolute; top: 40px; width: 100%; text-align: center; font-size: 40px; color: #1b263b; z-index: 10; font-weight: 900; pointer-events: none; }
+        #scoreBoard { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; color: #1b263b; font-weight: 900; z-index: 5; display: flex; gap: 50px; pointer-events: none; }
+        .loader { width: 40px; height: 40px; border: 4px solid #fff; border-bottom-color: transparent; border-radius: 50%; animation: rot 1s linear infinite; margin-bottom: 20px; }
+        @keyframes rot { from {transform: rotate(0deg)} to {transform: rotate(360deg)} }
     </style>
 </head>
 <body>
 
-    <div id="score">0 : 0</div>
+    <div id="scoreBoard"><div id="sMy">0</div><div id="sEn">0</div></div>
     <canvas id="game"></canvas>
 
     <div id="authScreen" class="screen active">
@@ -42,119 +39,135 @@
             <input type="text" id="uIn" placeholder="НИК">
             <input type="password" id="pIn" placeholder="ПАРОЛЬ">
             <button onclick="auth(false)">ВОЙТИ</button>
-            <button onclick="auth(true)" style="background: #3e5c76;">РЕГИСТРАЦИЯ</button>
+            <button onclick="auth(true)" style="opacity:0.6">РЕГИСТРАЦИЯ</button>
         </div>
     </div>
 
     <div id="mainMenu" class="screen">
         <div class="panel">
-            <h2 id="hello" style="color: #00e5ff;">Привет!</h2>
-            <button onclick="startSearch()" style="background: #fb8500; font-size: 20px;">В БОЙ!</button>
-            <button onclick="startBot()" style="background: #4caf50;">ИГРА С БОТОМ</button>
-            <button onclick="location.reload()">ВЫХОД</button>
+            <h2 id="mName">Кот</h2>
+            <p>🏆 ELO: <span id="mElo">0</span></p>
+            <button onclick="findGame()" style="background:#fb8500; font-size:1.2rem; margin-top:20px;">В БОЙ!</button>
+            <button onclick="showScreen('shopScreen')">МАГАЗИН</button>
+            <button onclick="showScreen('bpScreen')">БАТТЛ ПАСС</button>
+            <button onclick="location.reload()" style="background:#555">ВЫХОД</button>
         </div>
     </div>
 
     <div id="searchScreen" class="screen">
         <div class="panel">
-            <h2 style="color: #fff;">ИЩЕМ ИГРОКА...</h2>
-            <div style="margin: 20px; color: #00b4d8;">🌀</div>
-            <button onclick="location.reload()">ОТМЕНА</button>
+            <div class="loader"></div>
+            <h2>ИЩЕМ СОПЕРНИКА...</h2>
+            <button onclick="startBot()" style="background:#4caf50; margin-top:20px;">ИГРАТЬ С БОТОМ</button>
+            <button onclick="location.reload()" style="background:#555">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <div id="shopScreen" class="screen">
+        <div class="panel">
+            <h2>МАГАЗИН</h2>
+            <p>Скор. улучшения: <span id="sLvl">0</span></p>
+            <button onclick="buy()">КУПИТЬ СКОРОСТЬ (100 ELO)</button>
+            <button onclick="showScreen('mainMenu')">НАЗАД</button>
+        </div>
+    </div>
+
+    <div id="bpScreen" class="screen">
+        <div class="panel">
+            <h2>BATTLE PASS</h2>
+            <div style="background:#333; height:20px; border-radius:10px; margin:20px 0; overflow:hidden;">
+                <div id="bpBar" style="background:#00e5ff; height:100%; width:0%"></div>
+            </div>
+            <p>XP: <span id="mXp">0</span> / 300</p>
+            <button onclick="showScreen('mainMenu')">НАЗАД</button>
         </div>
     </div>
 
     <script>
         const socket = io();
+        let myData = { name: "", elo: 0, speedUpgrades: 0, xp: 0 };
+        let W, H, isPlaying = false, isBot = false, mySide = "left", currentRoom = "";
+        let pScore = 0, eScore = 0;
+
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        let W, H, myName = "", mySide = "left", isPlaying = false, isBot = false;
-        let pScore = 0, eScore = 0, currentRoom = "";
 
-        // Физика
+        // ФИЗИКА
         const friction = 0.998;
-        let p1 = { x: 0, y: 0, r: 40, color: '#0077b6' };
-        let p2 = { x: 0, y: 0, r: 40, color: '#e63946' };
-        let puck = { x: 0, y: 0, r: 20, vx: 0, vy: 0 };
+        let p1 = { x: 0, y: 0, r: 40, color: '#0077b6', name: "" };
+        let p2 = { x: 0, y: 0, r: 40, color: '#e63946', name: "" };
+        let puck = { x: 0, y: 0, r: 22, vx: 0, vy: 0 };
 
-        function auth(reg) {
-            socket.emit('auth', { username: uIn.value, password: pIn.value, isRegister: reg });
-        }
-
-        socket.on('authResponse', (res) => {
-            if(res.success) {
-                myName = res.user.name;
-                hello.innerText = "Кот: " + myName;
-                showScreen('mainMenu');
+        function auth(reg) { socket.emit('auth', { username: uIn.value, password: pIn.value, isRegister: reg }); }
+        
+        socket.on('authResponse', res => {
+            if(res.success) { 
+                myData = res.user; updateUI(); showScreen('mainMenu'); 
             } else alert(res.msg);
         });
 
+        function updateUI() {
+            mName.innerText = myData.name; mElo.innerText = myData.elo;
+            sLvl.innerText = myData.speedUpgrades; mXp.innerText = myData.xp;
+            bpBar.style.width = (myData.xp / 300 * 100) + "%";
+        }
+
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+            if(id !== 'none') document.getElementById(id).classList.add('active');
         }
 
-        function startSearch() {
-            showScreen('searchScreen');
-            socket.emit('joinGame', { name: myName });
-        }
+        function findGame() { showScreen('searchScreen'); socket.emit('joinGame', { name: myData.name }); }
 
         function startBot() {
-            isBot = true; isPlaying = true;
-            initPositions();
-            showScreen('none');
-            loop();
+            isBot = true; isPlaying = true; mySide = "left";
+            p1.name = myData.name; p2.name = "Бот-Кот";
+            resetPuck(); showScreen('none'); loop();
         }
 
         socket.on('init', d => { mySide = d.side; currentRoom = d.roomId; });
-        socket.on('startGame', () => { 
-            isBot = false; isPlaying = true; 
-            initPositions();
-            showScreen('none'); 
-            loop(); 
+        socket.on('startGame', room => {
+            isBot = false; isPlaying = true;
+            p1.name = myData.name;
+            let en = room.players.find(p => p.id !== socket.id);
+            p2.name = en ? en.name : "Враг";
+            resetPuck(); showScreen('none'); loop();
         });
-
-        function initPositions() {
-            puck.x = W/2; puck.y = H/2; puck.vx = 0; puck.vy = 0;
-            p1.y = H/2; p2.y = H/2;
-            p1.x = 100; p2.x = W - 100;
-        }
 
         socket.on('updateState', d => {
             if(isBot) return;
-            const en = d.players.find(p => p.id !== socket.id);
+            let en = d.players.find(p => p.id !== socket.id);
             if(en) { p2.x = en.x; p2.y = en.y; }
             puck = d.puck;
         });
 
+        function buy() { socket.emit('buyUpgrade', { name: myData.name }); }
+        socket.on('upgradeSuccess', u => { myData = u; updateUI(); });
+
         function loop() {
             if(!isPlaying) return;
 
-            // Движение шайбы
             puck.vx *= friction; puck.vy *= friction;
             puck.x += puck.vx; puck.y += puck.vy;
 
-            // Стенки
-            if(puck.y < 20 || puck.y > H-20) puck.vy *= -1;
+            if(puck.y < 25 || puck.y > H-25) puck.vy *= -1;
             
             // Ворота
-            if(puck.x < 0) { if(puck.y > H/2-90 && puck.y < H/2+90) { eScore++; initPositions(); } else { puck.x=0; puck.vx*=-1; } }
-            if(puck.x > W) { if(puck.y > H/2-90 && puck.y < H/2+90) { pScore++; initPositions(); } else { puck.x=W; puck.vx*=-1; } }
-
-            document.getElementById('score').innerText = `${pScore} : ${eScore}`;
-
-            // Столкновение игрока
-            let dx = puck.x - p1.x, dy = puck.y - p1.y, dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist < p1.r + puck.r) {
-                puck.vx = (dx/dist) * 15;
-                puck.vy = (dy/dist) * 15;
-            }
+            if(puck.x < 0) { if(puck.y > H/2-90 && puck.y < H/2+90) { eScore++; resetPuck(); } else { puck.x=0; puck.vx*=-1; } }
+            if(puck.x > W) { if(puck.y > H/2-90 && puck.y < H/2+90) { pScore++; resetPuck(); } else { puck.x=W; puck.vx*=-1; } }
 
             // Бот
             if(isBot) {
-                p2.x = W - 80;
-                p2.y += (puck.y - p2.y) * 0.1;
-                let bdx = puck.x - p2.x, bdy = puck.y - p2.y, bdist = Math.sqrt(bdx*bdx + bdy*bdy);
-                if(bdist < p2.r + puck.r) { puck.vx = (bdx/bdist) * 15; puck.vy = (bdy/bdist) * 15; }
+                p2.x = W - 80; p2.y += (puck.y - p2.y) * 0.1;
+                let bdx = puck.x-p2.x, bdy = puck.y-p2.y, bdist = Math.sqrt(bdx*bdx+bdy*bdy);
+                if(bdist < p2.r + puck.r) { puck.vx = (bdx/bdist)*16; puck.vy = (bdy/bdist)*16; }
+            }
+
+            // Игрок
+            let dx = puck.x-p1.x, dy = puck.y-p1.y, dist = Math.sqrt(dx*dx+dy*dy);
+            if(dist < p1.r + puck.r) {
+                let s = 16 + (myData.speedUpgrades || 0);
+                puck.vx = (dx/dist)*s; puck.vy = (dy/dist)*s;
             }
 
             draw();
@@ -162,19 +175,24 @@
             requestAnimationFrame(loop);
         }
 
+        function resetPuck() { puck.x = W/2; puck.y = H/2; puck.vx = 0; puck.vy = 0; sMy.innerText = pScore; sEn.innerText = eScore; }
+
         function draw() {
             ctx.fillStyle = '#f0faff'; ctx.fillRect(0,0,W,H);
-            ctx.strokeStyle = '#rgba(0,0,0,0.1)'; ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(0,180,216,0.2)'; ctx.lineWidth = 10;
             ctx.strokeRect(10,10,W-20,H-20);
             ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
             
-            // Ворота
-            ctx.fillStyle = '#ff5252'; ctx.fillRect(0, H/2-90, 10, 180); ctx.fillRect(W-10, H/2-90, 10, 180);
+            ctx.fillStyle = '#ff5252'; ctx.fillRect(0,H/2-90,10,180); ctx.fillRect(W-10,H/2-90,10,180);
 
-            // Объекты
             ctx.fillStyle = '#1b263b'; ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, 7); ctx.fill();
-            ctx.fillStyle = p1.color; ctx.beginPath(); ctx.arc(p1.x, p1.y, p1.r, 0, 7); ctx.fill();
-            ctx.fillStyle = p2.color; ctx.beginPath(); ctx.arc(p2.x, p2.y, p2.r, 0, 7); ctx.fill();
+            drawCircle(p1); drawCircle(p2);
+        }
+
+        function drawCircle(p) {
+            ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+            ctx.fillStyle = "#1b263b"; ctx.font = "bold 16px Montserrat"; ctx.textAlign = "center";
+            ctx.fillText(p.name, p.x, p.y - p.r - 10);
         }
 
         window.addEventListener('mousemove', e => {
@@ -183,7 +201,13 @@
             p1.y = e.clientY;
         });
 
-        function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }
+        function resize() {
+            const dpr = window.devicePixelRatio || 1;
+            W = window.innerWidth; H = window.innerHeight;
+            canvas.width = W * dpr; canvas.height = H * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+        }
         window.addEventListener('resize', resize);
         resize();
     </script>
