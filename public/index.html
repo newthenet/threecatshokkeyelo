@@ -2,22 +2,47 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cats Hokey ELO Server Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cats Hokey ELO - Ultra Online</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Montserrat', sans-serif; }
         body { background-color: #0d1b2a; color: white; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #e0f7fa; }
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(13, 27, 42, 0.8); backdrop-filter: blur(10px); }
+        
+        .screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 10; display: none; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            background: rgba(13, 27, 42, 0.8); backdrop-filter: blur(10px); 
+        }
         .screen.active { display: flex; }
-        .panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 15px; padding: 20px; text-align: center; width: 90%; max-width: 400px; }
-        button { padding: 12px 20px; margin: 5px; border-radius: 8px; border: none; background: #00b4d8; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #0077b6; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #00e5ff; background: rgba(0,0,0,0.7); color: white; text-align: center; }
-        #scoreBoard { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 2rem; color: #1b263b; font-weight: bold; z-index: 5; display: flex; gap: 40px; }
+        
+        .panel { 
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); 
+            border-radius: 15px; padding: 20px; text-align: center; width: 90%; max-width: 400px; 
+        }
+
+        button { 
+            padding: 12px 20px; margin: 5px; border-radius: 8px; border: none; 
+            background: #00b4d8; color: white; font-weight: bold; cursor: pointer; width: 100%;
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        input { 
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; 
+            border: 1px solid #00e5ff; background: rgba(0,0,0,0.7); color: white; text-align: center; 
+        }
+
+        #scoreBoard { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+            font-size: 1.8rem; color: #1b263b; font-weight: bold; z-index: 5; display: flex; gap: 40px; 
+        }
         .user-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px; margin: 4px 0; border-radius: 5px; }
+        
+        /* Прогресс бар баттлпасса */
+        .progress-container { background: #333; height: 12px; border-radius: 6px; margin: 15px 0; overflow: hidden; }
+        #eBar { background: #00e5ff; height: 100%; width: 0%; transition: 0.5s; }
     </style>
 </head>
 <body>
@@ -29,29 +54,52 @@
             <h1>Cats Hokey</h1>
             <input type="text" id="uIn" placeholder="Никнейм">
             <input type="password" id="pIn" placeholder="Пароль">
-            <p id="authMsg" style="color:#ff4d4d; font-size:0.8rem;"></p>
-            <button onclick="sendAuth(false)">Войти</button>
-            <button onclick="sendAuth(true)" style="opacity:0.7">Регистрация</button>
+            <p id="authMsg" style="color:#ff4d4d; font-size:0.8rem; margin-bottom:10px;"></p>
+            <button onclick="sendAuth(false)">ВОЙТИ</button>
+            <button onclick="sendAuth(true)" style="background:none; border:1px solid #00b4d8">РЕГИСТРАЦИЯ</button>
         </div>
     </div>
 
     <div id="mainMenu" class="screen">
+        <div style="position:absolute; top:20px; right:20px;">
+            🏆 ELO: <span id="mElo" style="color:#00e5ff">0</span>
+        </div>
         <div class="panel">
             <h2 id="mName">Игрок</h2>
-            <p style="margin-bottom: 15px;">🏆 ELO: <span id="mElo">0</span></p>
-            <button onclick="findGame()" style="background:#fb8500; width: 100%; font-size: 1.2rem;">ИГРАТЬ ОНЛАЙН</button>
-            <div id="adminArea" style="display:none; margin-top:15px; padding-top:15px; border-top: 1px solid #555;">
-                <button onclick="showUsers()" style="background:#d62828; width:100%">АДМИН: ИГРОКИ</button>
+            <button onclick="findGame()" style="background:#fb8500; font-size:1.3rem; margin-top:15px;">В БОЙ!</button>
+            <button onclick="showScreen('shopScreen')">🛒 МАГАЗИН</button>
+            <button onclick="showScreen('eventScreen')">🎁 СОБЫТИЯ (BP)</button>
+            <div id="adminArea" style="display:none; border-top:1px solid #444; margin-top:10px; padding-top:10px;">
+                <button onclick="showUsers()" style="background:#d62828">АДМИН: ИГРОКИ</button>
             </div>
-            <button onclick="location.reload()" style="background:#555; width:100%; margin-top:10px;">Выход</button>
+            <button onclick="location.reload()" style="background:#555">ВЫХОД</button>
+        </div>
+    </div>
+
+    <div id="shopScreen" class="screen">
+        <div class="panel">
+            <h2>ПРОКАЧКА</h2>
+            <p>Уровень скорости: <span id="sLvl" style="color:#00e5ff">0</span>/10</p>
+            <button id="buyBtn" onclick="buySpeed()" style="margin-top:15px;">УЛУЧШИТЬ (100 ELO)</button>
+            <button onclick="showScreen('mainMenu')" style="background:#555">НАЗАД</button>
+        </div>
+    </div>
+
+    <div id="eventScreen" class="screen">
+        <div class="panel">
+            <h2>SEASON I</h2>
+            <p>Прогресс: <span id="eXp">0</span> / 300 XP</p>
+            <div class="progress-container"><div id="eBar"></div></div>
+            <p style="font-size:0.7rem; color:#aaa">За 300 XP даем +500 ELO!</p>
+            <button onclick="showScreen('mainMenu')" style="background:#555; margin-top:15px;">НАЗАД</button>
         </div>
     </div>
 
     <div id="adminScreen" class="screen">
         <div class="panel">
-            <h2>Список игроков</h2>
-            <div id="userListCont" style="max-height: 250px; overflow-y: auto; margin: 15px 0;"></div>
-            <button onclick="showScreen('mainMenu')">Назад</button>
+            <h2>ВСЕ АККАУНТЫ</h2>
+            <div id="userListCont" style="max-height: 250px; overflow-y: auto; margin: 15px 0; text-align: left;"></div>
+            <button onclick="showScreen('mainMenu')" style="background:#555">НАЗАД</button>
         </div>
     </div>
 
@@ -64,21 +112,22 @@
 
     <script>
         const socket = io();
-        let myName = "", myElo = 0, mySide = "", currentRoom = "", isPlaying = false;
-        
+        let myData = { name: "", elo: 0, speed: 0, xp: 0 };
+        let mySide = "", currentRoom = "", isPlaying = false;
+        let pScore = 0, eScore = 0;
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         let W, H;
 
-        // --- ФИЗИКА (КАК ПРОСИЛ) ---
-        const PUCK_FRICTION = 0.997; // Скользит "прям сильно"
-        const BASE_SPEED = 14;       // Базовая скорость увеличена
+        // --- ГИПЕР-ФИЗИКА ---
+        const PUCK_FRICTION = 0.9975; // Почти бесконечное скольжение
+        const BASE_SPEED = 15;        // Еще быстрее
 
-        let p1 = { x: 0, y: 0, r: 35, color: '#0077b6' }; // Ты Синий
-        let p2 = { x: 0, y: 0, r: 35, color: '#e63946' }; // Враг Красный
+        let p1 = { x: 0, y: 0, r: 35, color: '#0077b6', name: "" }; 
+        let p2 = { x: 0, y: 0, r: 35, color: '#e63946', name: "" }; 
         let puck = { x: 0, y: 0, r: 20, vx: 0, vy: 0 };
 
-        // --- AUTH ---
         function sendAuth(isRegister) {
             const u = document.getElementById('uIn').value;
             const p = document.getElementById('pIn').value;
@@ -87,51 +136,65 @@
 
         socket.on('authResponse', (res) => {
             if(res.success) {
-                myName = res.user.name;
-                myElo = res.user.elo;
-                document.getElementById('mName').innerText = myName;
-                document.getElementById('mElo').innerText = myElo;
-                if(myName === 'admin') document.getElementById('adminArea').style.display = 'block';
+                myData = res.user;
+                updateUI();
+                if(myData.name === 'admin') document.getElementById('adminArea').style.display = 'block';
                 showScreen('mainMenu');
             } else {
                 document.getElementById('authMsg').innerText = res.msg;
             }
         });
 
-        // --- ADMIN ---
-        function showUsers() {
-            socket.emit('adminGetUsers');
-            showScreen('adminScreen');
+        function updateUI() {
+            document.getElementById('mName').innerText = myData.name;
+            document.getElementById('mElo').innerText = myData.elo;
+            document.getElementById('sLvl').innerText = myData.speedUpgrades || 0;
+            document.getElementById('eXp').innerText = myData.xp || 0;
+            document.getElementById('eBar').style.width = ((myData.xp || 0) / 300 * 100) + "%";
+            document.getElementById('buyBtn').disabled = (myData.elo < 100 || (myData.speedUpgrades || 0) >= 10);
         }
-        socket.on('adminUserList', (list) => {
-            const cont = document.getElementById('userListCont');
-            cont.innerHTML = "";
-            list.forEach(u => {
-                cont.innerHTML += `
-                    <div class="user-item">
-                        <span>${u.name} (${u.elo})</span>
-                        ${u.name !== 'admin' ? `<button onclick="deleteUser('${u.name}')" style="padding:4px 8px; background:red; font-size:10px;">DEL</button>` : ''}
-                    </div>
-                `;
-            });
-        });
-        function deleteUser(n) { if(confirm(`Удалить ${n}?`)) socket.emit('adminDeleteUser', n); }
-        socket.on('adminMsg', (m) => { alert(m); showUsers(); });
 
-        // --- GAME ---
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
+        // Магазин (нужно добавить событие на сервер для сохранения покупки)
+        function buySpeed() {
+            socket.emit('buyUpgrade', { name: myData.name, type: 'speed' });
+        }
+        socket.on('upgradeSuccess', (newUser) => { myData = newUser; updateUI(); });
+
+        // Админка
+        function showUsers() { socket.emit('adminGetUsers'); showScreen('adminScreen'); }
+        socket.on('adminUserList', (list) => {
+            const cont = document.getElementById('userListCont');
+            cont.innerHTML = "";
+            list.forEach(u => {
+                cont.innerHTML += `<div class="user-item"><span>${u.name} [${u.elo}]</span> 
+                ${u.name !== 'admin' ? `<button onclick="delU('${u.name}')" style="width:50px; background:red; padding:4px;">DEL</button>` : ''}</div>`;
+            });
+        });
+        function delU(n) { if(confirm('Удалить?')) socket.emit('adminDeleteUser', n); }
+
+        // --- ГЕЙМПЛЕЙ ---
         function findGame() {
-            socket.emit('joinGame', { name: myName });
+            socket.emit('joinGame', { name: myData.name });
             showScreen('gameUI');
         }
 
         socket.on('init', (d) => { mySide = d.side; currentRoom = d.roomId; });
-        socket.on('startGame', () => { isPlaying = true; puck.x = W/2; puck.y = H/2; loop(); });
-        
+        socket.on('startGame', (room) => {
+            isPlaying = true;
+            pScore = 0; eScore = 0;
+            updateScores();
+            puck.x = W/2; puck.y = H/2;
+            p1.name = myData.name;
+            const enemy = room.players.find(p => p.id !== socket.id);
+            p2.name = enemy ? enemy.name : "Враг";
+            loop();
+        });
+
         socket.on('updateState', (d) => {
             const enemy = d.players.find(p => p.id !== socket.id);
             if(enemy) { p2.x = enemy.x; p2.y = enemy.y; }
@@ -141,23 +204,48 @@
         function loop() {
             if(!isPlaying) return;
             
-            // Физика шайбы
             puck.vx *= PUCK_FRICTION; puck.vy *= PUCK_FRICTION;
             puck.x += puck.vx; puck.y += puck.vy;
 
+            // Стенки и Ворота
+            let goalH = 180, gTop = H/2 - goalH/2, gBot = H/2 + goalH/2;
             if(puck.y < 0 || puck.y > H) puck.vy *= -1;
-            if(puck.x < 0 || puck.x > W) puck.vx *= -1;
 
-            // Столкновение
+            if(puck.x < 0) {
+                if(puck.y > gTop && puck.y < gBot) handleGoal('en');
+                else { puck.x = 0; puck.vx *= -1; }
+            }
+            if(puck.x > W) {
+                if(puck.y > gTop && puck.y < gBot) handleGoal('my');
+                else { puck.x = W; puck.vx *= -1; }
+            }
+
+            // Столкновение с игроком + бонус скорости из магазина
             let dx = puck.x - p1.x, dy = puck.y - p1.y, dist = Math.sqrt(dx*dx + dy*dy);
             if(dist < p1.r + puck.r) {
-                puck.vx = (dx/dist) * BASE_SPEED;
-                puck.vy = (dy/dist) * BASE_SPEED;
+                let bonus = (myData.speedUpgrades || 0);
+                puck.vx = (dx/dist) * (BASE_SPEED + bonus);
+                puck.vy = (dy/dist) * (BASE_SPEED + bonus);
             }
 
             draw();
             socket.emit('updatePos', { roomId: currentRoom, x: p1.x, y: p1.y, puck });
             requestAnimationFrame(loop);
+        }
+
+        function handleGoal(who) {
+            if(who === 'my') pScore++; else eScore++;
+            updateScores();
+            puck.x = W/2; puck.y = H/2; puck.vx = 0; puck.vy = 0;
+            if(pScore >= 3 || eScore >= 3) {
+                isPlaying = false;
+                alert(pScore >= 3 ? "ПОБЕДА!" : "ПОРАЖЕНИЕ");
+                location.reload(); // Для простоты обновления статы
+            }
+        }
+        function updateScores() {
+            document.getElementById('sMy').innerText = pScore;
+            document.getElementById('sEn').innerText = eScore;
         }
 
         window.addEventListener('mousemove', (e) => {
@@ -166,20 +254,44 @@
             p1.y = e.clientY;
         });
 
+        // Тач-управление для телефонов
+        window.addEventListener('touchmove', (e) => {
+            if(!isPlaying) return;
+            let t = e.touches[0];
+            p1.x = mySide === 'left' ? Math.min(t.clientX, W/2 - 40) : Math.max(t.clientX, W/2 + 40);
+            p1.y = t.clientY;
+        }, {passive: false});
+
         function draw() {
             ctx.fillStyle = '#e0f7fa'; ctx.fillRect(0,0,W,H);
-            ctx.strokeStyle = '#ff5252'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
             
-            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, 7); ctx.fill();
-            drawCircle(p1); drawCircle(p2);
+            // Ворота
+            ctx.fillStyle = 'rgba(255,0,0,0.2)';
+            ctx.fillRect(0, H/2-90, 15, 180);
+            ctx.fillRect(W-15, H/2-90, 15, 180);
+
+            // Разметка
+            ctx.strokeStyle = 'rgba(255,82,82,0.5)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+            ctx.beginPath(); ctx.arc(W/2, H/2, 60, 0, 7); ctx.stroke();
+            
+            // Шайба
+            ctx.fillStyle = '#111'; ctx.shadowBlur = 10; ctx.shadowColor = "black";
+            ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, 7); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Игроки + Ники
+            drawCircle(p1, p1.name);
+            drawCircle(p2, p2.name);
         }
 
-        function drawCircle(p) {
+        function drawCircle(p, name) {
             ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+            ctx.fillStyle = "#1b263b"; ctx.font = "bold 14px Montserrat"; ctx.textAlign = "center";
+            ctx.fillText(name || "", p.x, p.y - p.r - 10);
         }
 
-        function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; draw(); }
+        function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }
         window.addEventListener('resize', resize);
         resize();
     </script>
