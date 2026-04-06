@@ -10,12 +10,10 @@ const io = new Server(server);
 
 const DB_PATH = path.join(__dirname, 'users.json');
 
-// Загрузка базы данных
 let users = {};
 if (fs.existsSync(DB_PATH)) {
     users = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
 } else {
-    // Дефолтный админ, если файла нет
     users['admin'] = { password: 'catseloadmin', elo: 999, xp: 0, speedUpgrades: 0 };
     saveDB();
 }
@@ -29,14 +27,11 @@ app.use(express.static('public'));
 let rooms = {};
 
 io.on('connection', (socket) => {
-    // --- АВТОРИЗАЦИЯ ---
+    // Авторизация
     socket.on('auth', (data) => {
         const { username, password, isRegister } = data;
-        
         if (isRegister) {
-            if (users[username]) {
-                return socket.emit('authResponse', { success: false, msg: 'Ник занят' });
-            }
+            if (users[username]) return socket.emit('authResponse', { success: false, msg: 'Ник занят' });
             users[username] = { password, elo: 0, xp: 0, speedUpgrades: 0 };
             saveDB();
             socket.emit('authResponse', { success: true, user: { name: username, ...users[username] } });
@@ -49,9 +44,19 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- АДМИН-ПАНЕЛЬ ---
+    // --- ОБРАБОТКА ПОКУПОК В МАГАЗИНЕ ---
+    socket.on('buyUpgrade', (data) => {
+        const user = users[data.name];
+        if (user && user.elo >= 100 && (user.speedUpgrades || 0) < 10) {
+            user.elo -= 100;
+            user.speedUpgrades = (user.speedUpgrades || 0) + 1;
+            saveDB();
+            socket.emit('upgradeSuccess', { name: data.name, ...user });
+        }
+    });
+
+    // Админка
     socket.on('adminGetUsers', () => {
-        // Отправляем список всех кроме паролей
         const list = Object.keys(users).map(name => ({ name, elo: users[name].elo }));
         socket.emit('adminUserList', list);
     });
@@ -64,22 +69,15 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- МУЛЬТИПЛЕЕР ---
+    // Мультиплеер
     socket.on('joinGame', (userData) => {
         let roomId = Object.keys(rooms).find(id => rooms[id].players.length === 1) || socket.id;
-        
-        if (!rooms[roomId]) {
-            rooms[roomId] = { players: [], puck: { x: 400, y: 300, vx: 0, vy: 0 } };
-        }
-
+        if (!rooms[roomId]) rooms[roomId] = { players: [], puck: { x: 400, y: 300, vx: 0, vy: 0 } };
         const side = rooms[roomId].players.length === 0 ? 'left' : 'right';
         rooms[roomId].players.push({ id: socket.id, name: userData.name, side, x: 0, y: 0 });
         socket.join(roomId);
-
         socket.emit('init', { side, roomId });
-        if (rooms[roomId].players.length === 2) {
-            io.to(roomId).emit('startGame', rooms[roomId]);
-        }
+        if (rooms[roomId].players.length === 2) io.to(roomId).emit('startGame', rooms[roomId]);
     });
 
     socket.on('updatePos', (data) => {
