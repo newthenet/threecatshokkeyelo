@@ -3,31 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cats Hockey - ULTIMATE</title>
+    <title>Cats Hockey Full Edition</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Montserrat', sans-serif; }
         body { background: #0d1b2a; color: white; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
-        
         canvas { position: absolute; top: 0; left: 0; z-index: 1; background: #eef2f3; }
         
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(13, 27, 42, 0.9); backdrop-filter: blur(8px); }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(13, 27, 42, 0.9); backdrop-filter: blur(10px); }
         .screen.active { display: flex; }
         
         .panel { background: rgba(255, 255, 255, 0.05); border: 2px solid #00e5ff; border-radius: 20px; padding: 30px; text-align: center; width: 90%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,229,255,0.2); }
-        
-        button { padding: 15px; margin: 8px 0; border-radius: 12px; border: none; background: #00b4d8; color: white; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
+        button { padding: 15px; margin: 8px 0; border-radius: 12px; border: none; background: #00b4d8; color: white; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
         button:active { transform: scale(0.95); }
         input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: none; background: #1b263b; color: white; text-align: center; font-size: 16px; }
         
         #score { position: absolute; top: 20px; width: 100%; text-align: center; font-size: 3rem; color: #1b263b; font-weight: 900; z-index: 10; pointer-events: none; }
-        
-        .list-box { max-height: 250px; overflow-y: auto; margin: 15px 0; text-align: left; }
-        .item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #333; font-size: 1.1rem; }
-        
-        .bp-cont { background: #222; height: 15px; border-radius: 10px; margin: 15px 0; overflow: hidden; border: 1px solid #444; }
-        #bpBar { background: linear-gradient(90deg, #00e5ff, #00b4d8); height: 100%; width: 0%; transition: 1s; }
+        .bp-cont { background: #1b263b; height: 15px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        #bpBar { background: linear-gradient(90deg, #00e5ff, #00b4d8); height: 100%; width: 0%; transition: 0.5s; }
+        .item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body>
@@ -49,20 +44,19 @@
         <div style="position:absolute; top:20px; right:20px; text-align:right;">🏆 ELO: <span id="mElo" style="color:#00e5ff">0</span></div>
         <div class="panel">
             <h2 id="hello">Привет!</h2>
-            <button onclick="joinGame()" style="background:#fb8500; font-size:1.2rem; margin-top:15px;">В БОЙ (ОНЛАЙН)</button>
-            <button onclick="joinBot()" style="background:#4caf50;">ИГРАТЬ С БОТОМ</button>
+            <button onclick="join()" style="background:#fb8500; font-size:1.2rem; margin-top:15px;">В БОЙ</button>
             <button onclick="showScreen('shopScreen')">🛒 МАГАЗИН</button>
             <button onclick="showScreen('bpScreen')">🎁 BATTLE PASS</button>
-            <button onclick="openLeaderboard()">📊 ЛИДЕРБОРД</button>
-            <div id="adminArea" style="display:none;"><button onclick="openAdmin()" style="background:#d62828">АДМИНКА</button></div>
+            <button onclick="openTop()">📊 ТОП</button>
+            <div id="adminBtn" style="display:none;"><button onclick="openAdmin()" style="background:#d62828">АДМИНКА</button></div>
             <button onclick="logout()" style="background:#444">ВЫЙТИ</button>
         </div>
     </div>
 
     <div id="shopScreen" class="screen">
         <div class="panel">
-            <h2>ПРОКАЧКА</h2>
-            <p style="margin:15px 0;">Уровень удара: <span id="sLvl" style="color:#00e5ff">0</span></p>
+            <h2>МАГАЗИН</h2>
+            <p>Уровень удара: <span id="sLvl" style="color:#00e5ff">0</span></p>
             <button onclick="buy()">УЛУЧШИТЬ (100 ELO)</button>
             <button onclick="showScreen('mainMenu')" style="background:#444">НАЗАД</button>
         </div>
@@ -70,43 +64,26 @@
 
     <div id="bpScreen" class="screen">
         <div class="panel">
-            <h2>SEASON 1</h2>
+            <h2>BATTLE PASS</h2>
             <div class="bp-cont"><div id="bpBar"></div></div>
-            <p>Прогресс: <span id="mXp">0</span> / 500 XP</p>
-            <button onclick="showScreen('mainMenu')" style="background:#444; margin-top:20px;">НАЗАД</button>
+            <p><span id="mXp">0</span> / 500 XP</p>
+            <button onclick="showScreen('mainMenu')" style="background:#444">НАЗАД</button>
         </div>
     </div>
 
-    <div id="leaderScreen" class="screen">
+    <div id="topScreen" class="screen">
         <div class="panel">
             <h2>ТОП КОТОВ</h2>
-            <div id="leaderList" class="list-box"></div>
+            <div id="topList" style="margin:15px 0;"></div>
             <button onclick="showScreen('mainMenu')" style="background:#444">НАЗАД</button>
         </div>
     </div>
 
     <div id="adminScreen" class="screen">
         <div class="panel">
-            <h2>УПРАВЛЕНИЕ</h2>
-            <div id="adminList" class="list-box"></div>
+            <h2>АДМИНКА</h2>
+            <div id="adminList" style="margin:15px 0; max-height:200px; overflow-y:auto;"></div>
             <button onclick="showScreen('mainMenu')" style="background:#444">НАЗАД</button>
-        </div>
-    </div>
-
-    <div id="searchScreen" class="screen">
-        <div class="panel">
-            <h2 style="margin-bottom: 20px;">ИЩЕМ СОПЕРНИКА...</h2>
-            <div style="font-size: 40px; animation: pulse 1s infinite;">🏒</div>
-            <button onclick="location.reload()" style="background:#555">ОТМЕНА</button>
-        </div>
-    </div>
-
-    <div id="gameOverScreen" class="screen">
-        <div class="panel">
-            <h1 style="color:#fb8500; font-size: 2.5rem;">ИГРА ОКОНЧЕНА</h1>
-            <h2 id="winnerText" style="margin: 20px 0;">Победили: Левые</h2>
-            <p style="margin-bottom: 20px; font-size:12px; color:#aaa">Твои данные (ELO и XP) обновятся в меню!</p>
-            <button onclick="location.reload()">В МЕНЮ</button>
         </div>
     </div>
 
@@ -114,115 +91,110 @@
         const socket = io();
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        let myData = {}, isPlaying = false, state = null;
+        let myData = {}, isPlaying = false, isMaster = false, mySide = "left", roomId = "";
+        let pScore = 0, eScore = 0, enemyName = "Враг";
 
-        // АВТОВХОД
+        let p1 = { x: 100, y: 300, r: 40, color: '#0077b6' };
+        let p2 = { x: 700, y: 300, r: 40, color: '#e63946' };
+        let puck = { x: 400, y: 300, r: 22, vx: 0, vy: 0 };
+
+        // --- АВТОРИЗАЦИЯ ---
         window.onload = () => {
-            let saved = localStorage.getItem('catsAuth');
-            if(saved) socket.emit('auth', JSON.parse(saved));
+            const s = localStorage.getItem('catAuth');
+            if(s) socket.emit('auth', JSON.parse(s));
         };
-
-        function auth(isReg) {
-            let creds = { username: uIn.value, password: pIn.value, isRegister: isReg };
-            socket.emit('auth', creds);
-        }
-
-        socket.on('authResponse', res => {
-            if(res.success) {
-                myData = res.user;
-                updateUI();
-                localStorage.setItem('catsAuth', JSON.stringify({ username: myData.name, password: uIn.value || myData.password, isRegister: false }));
-                if(myData.name === 'admin') document.getElementById('adminArea').style.display = 'block';
+        function auth(reg) { socket.emit('auth', { username: uIn.value, password: pIn.value, isRegister: reg }); }
+        socket.on('authResponse', r => {
+            if(r.success) {
+                myData = r.user; updateUI();
+                localStorage.setItem('catAuth', JSON.stringify({ username: myData.name, password: pIn.value || myData.password, isRegister: false }));
+                if(myData.name === 'admin') adminBtn.style.display = 'block';
                 showScreen('mainMenu');
-            } else { alert(res.msg); localStorage.removeItem('catsAuth'); }
+            } else alert(r.msg || "Ошибка");
         });
-
         function updateUI() {
-            document.getElementById('hello').innerText = "Кот: " + myData.name;
-            document.getElementById('mElo').innerText = myData.elo;
-            document.getElementById('sLvl').innerText = myData.speedUpgrades || 0;
-            document.getElementById('mXp').innerText = myData.xp || 0;
-            document.getElementById('bpBar').style.width = Math.min((myData.xp || 0) / 500 * 100, 100) + "%";
+            hello.innerText = "Кот: " + myData.name; mElo.innerText = myData.elo;
+            sLvl.innerText = myData.speedUpgrades || 0; mXp.innerText = myData.xp;
+            bpBar.style.width = Math.min((myData.xp/500)*100, 100) + "%";
         }
+        function logout() { localStorage.removeItem('catAuth'); location.reload(); }
 
-        function logout() { localStorage.removeItem('catsAuth'); location.reload(); }
-
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            if(id !== 'none') document.getElementById(id).classList.add('active');
-        }
-
-        // МАГАЗИН И АДМИНКА
+        // --- ФУНКЦИИ МЕНЮ ---
         function buy() { socket.emit('buyUpgrade', { name: myData.name }); }
         socket.on('upgradeSuccess', u => { myData = u; updateUI(); });
-
-        function openLeaderboard() { socket.emit('getLeaderboard'); showScreen('leaderScreen'); }
-        socket.on('leaderboardData', list => {
-            const listDiv = document.getElementById('leaderList'); listDiv.innerHTML = "";
-            list.forEach((u, i) => {
-                let medal = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : '👤';
-                listDiv.innerHTML += `<div class="item"><span>${medal} ${u.name}</span><b>${u.elo}</b></div>`;
-            });
-        });
-
+        function openTop() { socket.emit('getLeaderboard'); showScreen('topScreen'); }
+        socket.on('leaderboardData', l => { topList.innerHTML = l.map(u => `<div class="item"><span>${u.name}</span><b>${u.elo}</b></div>`).join(''); });
         function openAdmin() { socket.emit('adminGetUsers'); showScreen('adminScreen'); }
-        socket.on('adminUserList', list => {
-            const aCont = document.getElementById('adminList'); aCont.innerHTML = "";
-            list.forEach(u => {
-                aCont.innerHTML += `<div class="item"><span>${u.name}</span><button onclick="delU('${u.name}')" style="width:50px; padding:5px; background:red;">X</button></div>`;
-            });
+        socket.on('adminUserList', l => { adminList.innerHTML = l.map(u => `<div class="item"><span>${u.name}</span><button onclick="del('${u.name}')" style="background:red; width:30px; padding:2px">X</button></div>`).join(''); });
+        function del(n) { if(confirm('Удалить?')) socket.emit('adminDeleteUser', n); }
+
+        // --- ИГРА ---
+        function join() { showScreen('none'); socket.emit('joinGame', { name: myData.name }); }
+        socket.on('init', d => { mySide = d.side; roomId = d.roomId; isMaster = d.isMaster; });
+        socket.on('startGame', d => { 
+            let e = d.players.find(p => p.id !== socket.id); enemyName = e ? e.name : "Враг";
+            isPlaying = true; pScore = 0; eScore = 0; loop(); 
         });
-        function delU(n) { if(confirm('Удалить ' + n + '?')) socket.emit('adminDeleteUser', n); }
-
-        // МУЛЬТИПЛЕЕР И ФИЗИКА
-        function joinGame() { showScreen('searchScreen'); socket.emit('joinGame', { name: myData.name }); }
-        function joinBot() { showScreen('searchScreen'); socket.emit('joinBot', { name: myData.name }); }
-
-        socket.on('startGame', () => { showScreen('none'); isPlaying = true; loop(); });
-
-        socket.on('gameState', s => { state = s; sL.innerText = s.score.left; sR.innerText = s.score.right; });
-
-        socket.on('gameOver', res => {
-            isPlaying = false;
-            document.getElementById('winnerText').innerText = "ПОБЕДА: " + res.winner.toUpperCase();
-            showScreen('gameOverScreen');
+        socket.on('updateState', d => {
+            p2.x = d.x; p2.y = d.y;
+            if(!isMaster) { puck = d.puck; pScore = d.pScore; eScore = d.eScore; }
         });
-
-        // КООРДИНАТЫ (МАСШТАБИРОВАНИЕ 800x600)
-        window.addEventListener('mousemove', e => {
-            if(!isPlaying) return;
-            socket.emit('move', { x: (e.clientX / window.innerWidth) * 800, y: (e.clientY / window.innerHeight) * 600 });
-        });
-        window.addEventListener('touchmove', e => {
-            if(!isPlaying) return;
-            socket.emit('move', { x: (e.touches[0].clientX / window.innerWidth) * 800, y: (e.touches[0].clientY / window.innerHeight) * 600 });
-        }, {passive: false});
+        socket.on('opponentLeft', () => { alert("Враг ливнул!"); location.reload(); });
 
         function loop() {
-            if(!isPlaying || !state) { if(isPlaying) requestAnimationFrame(loop); return; }
+            if(!isPlaying) return;
+            if(isMaster) {
+                puck.vx *= 0.99; puck.vy *= 0.99; puck.x += puck.vx; puck.y += puck.vy;
+                if(puck.y < 25 || puck.y > 575) puck.vy *= -1;
+                if(puck.x < 0) { if(puck.y > 210 && puck.y < 390) { eScore++; check(); reset(); } else { puck.x=0; puck.vx*=-1; } }
+                if(puck.x > 800) { if(puck.y > 210 && puck.y < 390) { pScore++; check(); reset(); } else { puck.x=800; puck.vx*=-1; } }
+                hit(p1, myData.speedUpgrades || 0); hit(p2, 0);
+                socket.emit('sync', { roomId, x: p1.x, y: p1.y, puck, pScore, eScore });
+            } else { socket.emit('sync', { roomId, x: p1.x, y: p1.y }); }
+            draw(); requestAnimationFrame(loop);
+        }
 
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            let scaleX = canvas.width / 800, scaleY = canvas.height / 600;
-
-            ctx.clearRect(0,0, canvas.width, canvas.height);
-            ctx.save(); ctx.scale(scaleX, scaleY);
-
-            ctx.strokeStyle = 'rgba(0,180,216,0.2)'; ctx.lineWidth = 10;
-            ctx.strokeRect(10, 10, 780, 580);
-            ctx.beginPath(); ctx.moveTo(400, 0); ctx.lineTo(400, 600); ctx.stroke();
-            ctx.beginPath(); ctx.arc(400, 300, 80, 0, 7); ctx.stroke();
-
-            ctx.fillStyle = '#ff5252'; ctx.fillRect(0, 210, 15, 180); ctx.fillRect(785, 210, 15, 180);
-
-            for(let id in state.players) {
-                let p = state.players[id];
-                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 40, 0, 7); ctx.fill();
-                ctx.fillStyle = "#1b263b"; ctx.font = "bold 16px Montserrat"; ctx.textAlign = "center"; ctx.fillText(p.name, p.x, p.y - 50);
+        function hit(p, b) {
+            let dx = puck.x - p.x, dy = puck.y - p.y, dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist < p.r + puck.r) { let s = 16 + b; puck.vx = (dx/dist)*s; puck.vy = (dy/dist)*s; }
+        }
+        function reset() { puck = { x: 400, y: 300, vx: 0, vy: 0 }; }
+        function check() {
+            if(pScore >= 3 || eScore >= 3) {
+                isPlaying = false;
+                let win = (mySide === 'left' && pScore >= 3) || (mySide === 'right' && eScore >= 3);
+                socket.emit('endGame', { winner: win ? myData.name : enemyName, loser: win ? enemyName : myData.name });
+                alert(win ? "ПОБЕДА!" : "ПРОИГРЫШ"); location.reload();
             }
+        }
 
-            ctx.fillStyle = '#1b263b'; ctx.beginPath(); ctx.arc(state.puck.x, state.puck.y, 22, 0, 7); ctx.fill();
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); if(id !== 'none') document.getElementById(id).classList.add('active'); }
+        
+        window.addEventListener('mousemove', e => {
+            if(!isPlaying) return;
+            let r = canvas.getBoundingClientRect();
+            let x = ((e.clientX - r.left) / r.width) * 800;
+            let y = ((e.clientY - r.top) / r.height) * 600;
+            p1.x = mySide === 'left' ? Math.min(x, 360) : Math.max(x, 440);
+            p1.y = Math.max(40, Math.min(560, y));
+        });
 
-            ctx.restore(); requestAnimationFrame(loop);
+        function draw() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            let s = Math.min(canvas.width/800, canvas.height/600);
+            ctx.save(); ctx.translate(canvas.width/2 - 400*s, canvas.height/2 - 300*s); ctx.scale(s, s);
+            ctx.fillStyle = "#fff"; ctx.fillRect(0,0,800,600);
+            ctx.strokeStyle = "#00b4d8"; ctx.lineWidth = 5; ctx.strokeRect(10,10,780,580);
+            ctx.beginPath(); ctx.moveTo(400,0); ctx.lineTo(400,600); ctx.stroke();
+            ctx.fillStyle = "#e63946"; ctx.fillRect(0, 210, 10, 180); ctx.fillRect(790, 210, 10, 180);
+            
+            // Игроки
+            ctx.fillStyle = p1.color; ctx.beginPath(); ctx.arc(p1.x, p1.y, p1.r, 0, 7); ctx.fill();
+            ctx.fillStyle = p2.color; ctx.beginPath(); ctx.arc(p2.x, p2.y, p2.r, 0, 7); ctx.fill();
+            // Шайба
+            ctx.fillStyle = "#1b263b"; ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, 7); ctx.fill();
+            ctx.restore();
+            sL.innerText = pScore; sR.innerText = eScore;
         }
     </script>
 </body>
